@@ -96,8 +96,11 @@ cat << EOF
 <button title='Start default telnetd on port 23' type='button' onClick="window.location.href='action?cmd=telnetd'">Start rescue telnetd</button>
 <button title='Reboot the device' type='button' onClick="window.location.href='action?cmd=reboot'">Reboot</button>
 <button title='Manage scripts' type='button' onClick="window.location.href='scripts'">Manage scripts</button>
-<button title='Network' type='button' onClick="window.location.href='network'">Network</button>
+<button title='Network' type='button' onClick="window.location.href='network'">Network</button>     
 <button title='View /tmp/hacks.log' type='button' onClick="window.location.href='action?cmd=showlog'">View log</button>
+<button title='Manage scripts' type='button' onClick="window.location.href='record'">Recordings</button>
+<hr/>
+
 <hr/>
 <table class='tbl'>
 <tr>
