@@ -1,0 +1,68 @@
+#!/bin/sh
+
+echo "Content-type: text/html"
+echo ""
+source func.cgi
+cat << EOF
+<html>
+<head>
+<title>Fang Hacks</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/video.js/5.19.0/alt/video-js-cdn.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/5.19.0/video.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-hls/5.3.3/videojs-contrib-hls.min.js"></script>
+<script>
+function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+var file = getParameterByName('file');
+</script>
+<style>
+.vjs-default-skin .vjs-volume-control { display: none; }
+</style>
+<head>
+<style type="text/css">
+body { background-color: #B0E0E6; font-family: verdana, sans-serif; }
+.err { color: red; }
+hr { height: 1px; border: 0; border-top: 1px solid #aaa; }
+button, input[type=submit] { background-color: #ddeaff; }
+.tbl { border-collapse: collapse; border-spacing: 0;}
+.tbl th { text-align: left; vertical-align: top; font-weight: bold; padding: 10px 5px; border-style: solid; border-width: 1px; overflow: hidden; word-break: normal; }
+.tbl td { padding: 10px 5px; border-style: solid; border-width: 1px; overflow: hidden; word-break: normal; }
+</style>
+<body>
+<h1>Playing : <script>document.write(file);</script></h1>
+<hr/>
+<button title='Manage scripts' type='button' onClick="window.location.href='record'">Recordings</button>
+<hr/>
+EOF
+
+SCRIPT_HOME="/media/mmcblk0p2/data/etc/scripts"
+source "/media/mmcblk0p2/data/etc/profile" >/dev/null 2>&1
+RECORDINGS="/media/mmcblk0p2/data/tmp/recordings"
+
+cat << EOF
+<div>
+<video id="my_video" class="video-js vjs-default-skin" width=960 height=540 preload="auto" data-setup='{ "inactivityTimeout": 0 }'></video>
+</div>
+
+<script>
+var player = videojs('my_video');
+player.src({
+  src: '/recordings/'+file,
+  type: 'application/x-mpegURL',
+});
+player.play();
+</script>
+
+</body>
+</html>
+EOF

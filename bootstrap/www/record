@@ -1,0 +1,89 @@
+#!/bin/sh
+
+echo "Content-type: text/html"
+echo ""
+source func.cgi
+cat << EOF
+<html>
+<head>
+<title>Fang Hacks</title>
+<head>
+<style type="text/css">
+body { background-color: #B0E0E6; font-family: verdana, sans-serif; }
+.err { color: red; }
+hr { height: 1px; border: 0; border-top: 1px solid #aaa; }
+button, input[type=submit] { background-color: #ddeaff; }
+.tbl { border-collapse: collapse; border-spacing: 0;}
+.tbl th { text-align: left; vertical-align: top; font-weight: bold; padding: 10px 5px; border-style: solid; border-width: 1px; overflow: hidden; word-break: normal; }
+.tbl td { padding: 10px 5px; border-style: solid; border-width: 1px; overflow: hidden; word-break: normal; }
+</style>
+<body>
+<h1>Recordings</h1>
+<hr/>
+<button title='Status page' type='button' onClick="window.location.href='status'">Status</button>
+<button title='Reboot the device' type='button' onClick="window.location.href='action?cmd=reboot'">Reboot</button>
+<button title='View /tmp/hacks.log' type='button' onClick="window.location.href='action?cmd=showlog'">View log</button>
+<hr/>
+EOF
+
+SCRIPT_HOME="/media/mmcblk0p2/data/etc/scripts"
+source "/media/mmcblk0p2/data/etc/profile" >/dev/null 2>&1
+RECORDINGS="/media/mmcblk0p2/data/tmp/recordings"
+
+if [ ! -d "$RECORDINGS" ]; then
+  logmsg "Creating recordings directory -> $RECORDINGS"
+  mkdir -p $RECORDINGS
+fi
+if [ ! -h "/tmp/www/recordings" ]; then
+  logmsg "Linking $RECORDINGS -> /tmp/www/recordings"
+  ln -sf $RECORDINGS /tmp/www/recordings
+fi
+
+cat << EOF
+<table class='tbl'>
+<tr>
+EOF
+
+if [ $(pidof ffmpeg) ]; then
+  echo "<th>FFMPEG Control (PID: $(pidof ffmpeg))</th>"
+else
+  echo "<th>FFMPEG Control</th>"
+fi
+
+cat << EOF
+  <td>
+      <form style="margin: 0px" action="/cgi-bin/action?cmd=record" method="post">
+        <label style="margin-left: 1em" for="filename">Filename:</label>
+        <input id="filename" name="filename" type="text" size="20" value="$(date +%F_%H-%M-%S)"/>
+        <input type="submit" value="Start" name="submit"/>
+        <input type="submit" value="Stop"  name="submit"/>
+      </form>
+  </td>
+</tr>
+</table>
+<hr/>
+EOF
+
+if [ -n "$(ls -A $RECORDINGS/*.m3u8)" ]; then
+  echo "<table class='tbl'>"
+  echo "<tr>"
+  echo "<th>File</th><th colspan="2">Actions</th>"
+  echo "</tr>"
+  find "$RECORDINGS" -type f -iname "*.m3u8" -exec basename {} \; | while read filename; do
+    echo "<tr>"
+    echo "<td><a href=\"/recordings/$filename\" onclick=\"window.location.href='player?file=$filename';return false;\">$filename</a></td>"
+    echo "<td><button onclick=\"window.location.href='player?file=$filename';return false;\">Play</button></td>"
+    echo "<td><form style=\"margin: 0px\" action=\"/cgi-bin/action?cmd=record\" method=\"post\">"
+    echo "<input type=\"submit\" name="submit" value=\"Delete\"/>"
+    echo "<input type=\"hidden\" name="filename" value=\"$filename\"/>"
+    echo "</form></td></tr>"
+  done
+  echo "</table>"
+else
+  echo "<em>No recorded files found</em>"
+fi
+
+cat << EOF
+</body>
+</html>
+EOF

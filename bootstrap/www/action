@@ -39,7 +39,7 @@ manual_mount()
 
 update_file()
 {
- if [ ! -e "$2" ]; then 
+ if [ ! -e "$2" ]; then
    echo "Source file not found: '$2'<br/>"
    return
  fi
@@ -52,7 +52,7 @@ update_file()
    echo "<pre>$diff</pre>"
    install -m $3 "$2" "$1" 2>&1
    if [ $? -eq 0 ]; then echo "Updated successfully<br/>"; else echo "Failed to update '$2' -> '$1'<br/>"; fi
- fi   
+ fi
 }
 
 update()
@@ -93,12 +93,56 @@ apply()
     /etc/fang_hacks.sh 2>&1
     echo "</pre>"
   fi
-}  
+}
+
+record()
+{
+  RECORDINGS="/media/mmcblk0p2/data/tmp/recordings"
+  FFMPEG_PATH="/media/mmcblk0p2/data/test/ffmpeg"
+  action=$1
+
+  if [ $action = "Start" ]; then
+    if [ $(pidof ffmpeg) ]; then
+      echo "ffmpeg is already running"
+    else
+      if [ ! -f "$FFMPEG_PATH/ffmpeg" ]; then
+        echo "ffmpeg not in path \"$FFMPEG_PATH\", please fix"
+      else
+        filename="${2}.m3u8"
+        echo "Starting ffmpeg with filename: $filename..."
+        $($FFMPEG_PATH/ffmpeg -nostdin -rtsp_transport udp -i rtsp://localhost/unicast -c copy -hls_time 10 -hls_list_size 0 $RECORDINGS/$filename 2>/dev/null 1>&2&)
+        sleep 1
+      fi
+    fi
+  elif [ $action = "Stop" ]; then
+    if [ $(pidof ffmpeg) ]; then
+      pid=$(pidof ffmpeg)
+      echo "Stopping ffmpeg, killing PID $pid<br/>"
+      kill -9 $pid
+      sleep 1
+    else
+      echo "ffmpeg is not running"
+    fi
+  elif [ $action = "Delete" ]; then
+    if [ $(pidof ffmpeg) ]; then
+      echo "ffmpeg running, unable to delete \"$2\""
+    else
+      filename="${2%.*}"
+      echo "Deleting file \"$2\""
+      find $RECORDINGS -type f -iname $filename.m3u8 -exec rm {} \;
+      find $RECORDINGS -type f -iname $filename*.ts -exec rm {} \;
+    fi
+  else
+    :
+  fi
+
+  redirect='record'
+}
 
 echo "<br/>"
 if [ -n "$F_cmd" ]; then
   case "$F_cmd" in
-  showlog) 
+  showlog)
     echo "Contents of /tmp/hacks.log:<br/>"
     echo "<pre>"
     cat /tmp/hacks.log
@@ -151,7 +195,7 @@ if [ -n "$F_cmd" ]; then
     if [ $(cat /etc/TZ) != "$tz" ]; then
       echo "Setting TZ to '$tz'...<br/>"
       echo "$tz" > /etc/TZ
-      echo "Syncing time...<br/>"                                                         
+      echo "Syncing time...<br/>"
       /usr/sbin/ntpd -q -n -p time.google.com 2>&1
     fi
     hst=$(printf '%b' "${F_hostname//%/\\x}")
@@ -167,7 +211,7 @@ if [ -n "$F_cmd" ]; then
       if type fdisk >/dev/null; then
         p2_start=$(fdisk -l /dev/mmcblk0 | grep mmcblk0p2 | awk '{print $2}')
         echo "Found the start point of mmcblk0p2: $p2_start<br/>"
-        fdisk /dev/mmcblk0 >/dev/null << __EOF__ 
+        fdisk /dev/mmcblk0 >/dev/null << __EOF__
 d
 2
 n
@@ -188,6 +232,11 @@ __EOF__
       echo "awk not found!"
     fi
     ;;
+  record)
+    submit=$(printf '%b' "${F_submit//%/\\x}")
+    filename=$(printf '%b' "${F_filename//%/\\x}")
+    record $submit $filename
+    ;;
   *)
     echo "Unsupported command '$F_cmd'"
     ;;
@@ -195,4 +244,8 @@ __EOF__
 fi
 
 echo "<hr/>"
-echo "<button title='Return to status page' onClick=\"window.location.href='status'\">Back</button>"
+if [ -z "$redirect"]; then
+  redirect='status'
+fi
+echo "<button title='Return to status page' onClick=\"window.location.href='"$redirect"'\">Back</button>"
+#echo "<button title='Return to status page' onClick=\"window.location.href='status'\">Back</button>"
